@@ -58,7 +58,7 @@ const currentMonth = ref(new Date().getMonth());
 const currentYear = ref(new Date().getFullYear());
 
 const weekDays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-const API_URL = import.meta.env.VITE_API_URL || "";
+const API_URL = "https://residence-earache-golf.ngrok-free.dev";
 
 const calendarDays = computed(() => {
   const days = [];

@@ -84,7 +84,7 @@ const userData = ref(null);
 const loading = ref(true);
 const error = ref(null);
 
-const API_URL = import.meta.env.VITE_API_URL || "";
+const API_URL = "https://residence-earache-golf.ngrok-free.dev";
 
 onMounted(async () => {
   try {
