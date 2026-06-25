@@ -63,11 +63,8 @@
         </div>
       </div>
 
-      <!-- После силовых -->
-      <div
-        v-if="trainerProgram && trainerProgram.has_program"
-        class="trainer-program"
-      >
+      <!-- Программа тренера -->
+      <div v-if="trainerProgram?.has_program" class="trainer-program">
         <h3>👨‍🏫 Программа от тренера</h3>
         <div class="program-text">{{ trainerProgram.program }}</div>
         <p class="program-updated">
@@ -76,8 +73,7 @@
         </p>
       </div>
 
-      <!-- В самом низу, перед кнопкой "Редактировать" -->
-      <button class="profile-btn" @click="$router.push('/profile/edit')">
+      <button class="profile-btn" @click="goToEdit">
         ✏️ Редактировать профиль
       </button>
     </div>
@@ -86,22 +82,22 @@
 
 <script setup>
 import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import { useTelegram } from "~/composables/useTelegram";
 import { useApi } from "~/composables/useApi";
 
+const router = useRouter();
 const { getUser } = useTelegram();
+const { getUserData, getTrainerProgram } = useApi();
 
 const userData = ref(null);
+const trainerProgram = ref(null);
 const loading = ref(true);
 const error = ref(null);
 
-const editProfile = () => alert("Редактирование профиля через бота");
-
-const { getUserData, getTrainerProgram } = useApi();
-const trainerProgram = ref(null);
-
-// В блоке try добавь:
-trainerProgram.value = await getTrainerProgram(tgUser.id);
+const goToEdit = () => {
+  router.push("/profile/edit");
+};
 
 onMounted(async () => {
   const tgUser = getUser();
@@ -113,6 +109,7 @@ onMounted(async () => {
 
   try {
     userData.value = await getUserData(tgUser.id);
+    trainerProgram.value = await getTrainerProgram(tgUser.id);
   } catch (err) {
     console.error(err);
     error.value = "Ошибка загрузки данных";
@@ -209,6 +206,28 @@ onMounted(async () => {
 .strength-grid strong {
   font-size: 16px;
 }
+.trainer-program {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f3f4f6;
+}
+.trainer-program h3 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+.program-text {
+  background: #f0fdf4;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  white-space: pre-wrap;
+  color: #166534;
+}
+.program-updated {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 6px;
+}
 .profile-btn {
   width: 100%;
   margin-top: 16px;
@@ -218,6 +237,9 @@ onMounted(async () => {
   border: none;
   font-size: 14px;
   cursor: pointer;
+}
+.profile-btn:hover {
+  background: #e5e7eb;
 }
 .loading,
 .error {
