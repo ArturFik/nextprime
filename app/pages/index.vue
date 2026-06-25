@@ -79,7 +79,7 @@ const userData = ref(null);
 const todayWorkout = ref(null);
 const weightHistory = ref(null);
 
-const API_URL = import.meta.env.VITE_API_URL || "";
+const API_URL = "https://residence-earache-golf.ngrok-free.dev";
 
 const today = computed(() => {
   return new Date().toLocaleDateString("ru-RU", {
