@@ -2,7 +2,7 @@
   <div>
     <h1 class="page-title">👤 Профиль</h1>
 
-    <div class="profile-card" v-if="userData">
+    <div class="profile-card" v-if="userData && !loading">
       <div class="profile-header">
         <div class="profile-avatar">
           {{ userData.first_name?.[0] || "?" }}
@@ -57,7 +57,8 @@
       </button>
     </div>
 
-    <div v-else class="loading">Загрузка...</div>
+    <div v-else-if="loading" class="loading">Загрузка...</div>
+    <div v-else-if="error" class="error">{{ error }}</div>
   </div>
 </template>
 
@@ -67,26 +68,59 @@ import { useTelegram } from "~/composables/useTelegram";
 
 const { getUser } = useTelegram();
 const userData = ref(null);
+const loading = ref(true);
+const error = ref(null);
+
+// API URL (замени на свой)
+const API_URL = "http://localhost:8000";
 
 const editProfile = () => {
-  // Отправляем запрос в бот
   alert("Редактирование профиля через бота");
 };
 
-onMounted(() => {
-  const tgUser = getUser();
-  if (tgUser) {
-    // Здесь должны быть реальные данные из бота
+onMounted(async () => {
+  try {
+    const tgUser = getUser();
+
+    if (!tgUser) {
+      error.value = "Не удалось получить данные пользователя из Telegram";
+      loading.value = false;
+      return;
+    }
+
+    console.log("Telegram user:", tgUser);
+
+    // Запрашиваем данные из API
+    const response = await fetch(
+      `${API_URL}/api/user?telegram_id=${tgUser.id}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("User data from API:", data);
+
+    userData.value = data;
+    loading.value = false;
+  } catch (err) {
+    console.error("Ошибка загрузки данных:", err);
+    error.value = "Ошибка загрузки данных: " + err.message;
+
+    // Если API не доступен — показываем данные из Telegram (заглушка)
+    const tgUser = getUser();
     userData.value = {
-      first_name: tgUser.first_name || "Гость",
-      username: tgUser.username || "нет",
+      first_name: tgUser?.first_name || "Гость",
+      username: tgUser?.username || "нет",
       subscription: "BASIC",
-      total_workouts: 12,
-      current_streak: 7,
-      weight: 73,
-      goal: "Набрать массу",
-      experience: "Средний (3-12 месяцев)",
+      total_workouts: 0,
+      current_streak: 0,
+      weight: "—",
+      goal: "Не указана",
+      experience: "—",
     };
+    loading.value = false;
   }
 });
 </script>
@@ -186,5 +220,11 @@ onMounted(() => {
   text-align: center;
   padding: 40px;
   color: #6b7280;
+}
+
+.error {
+  text-align: center;
+  padding: 40px;
+  color: #dc2626;
 }
 </style>

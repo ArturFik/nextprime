@@ -13,6 +13,8 @@ export const useTelegram = () => {
       tg.ready();
       tg.expand();
       console.log("✅ Telegram WebApp initialized");
+    } else {
+      console.warn("⚠️ Telegram WebApp not found");
     }
   };
 
@@ -33,12 +35,13 @@ export const useTelegram = () => {
   const getUser = () => {
     const tg = getTg();
     if (tg) {
+      console.log("📱 Telegram user data:", tg.initDataUnsafe?.user);
       return tg.initDataUnsafe?.user;
     }
+    console.warn("⚠️ No Telegram user data");
     return null;
   };
 
-  // Получаем полные данные от бота (через initDataUnsafe)
   const getInitData = () => {
     const tg = getTg();
     if (tg) {
@@ -47,28 +50,12 @@ export const useTelegram = () => {
     return null;
   };
 
-  // Отправляем запрос к боту за данными
-  const fetchUserData = async () => {
-    try {
-      const response = await fetch("https://твой-бот-домен/api/user", {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      return await response.json();
-    } catch (error) {
-      console.error("Ошибка загрузки данных:", error);
-      return null;
-    }
-  };
-
   return {
     init,
     close,
     sendData,
     getUser,
     getInitData,
-    fetchUserData,
     getTg,
   };
 };
