@@ -8,7 +8,7 @@ const loading = ref(true);
 const error = ref(null);
 
 // ТВОЙ РЕАЛЬНЫЙ URL API (который работает в браузере)
-const API_URL = "https://твой-сайт.vercel.app"; // или твой реальный домен
+const API_URL = "https://nextprime-three.vercel.app/"; // или твой реальный домен
 
 onMounted(async () => {
   try {
