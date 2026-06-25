@@ -1,67 +1,3 @@
-<template>
-  <div>
-    <h1 class="page-title">👤 Профиль</h1>
-
-    <div class="profile-card" v-if="userData && !loading">
-      <div class="profile-header">
-        <div class="profile-avatar">
-          {{ userData.first_name?.[0] || "?" }}
-        </div>
-        <div class="profile-info">
-          <h2 class="profile-name">{{ userData.first_name || "Гость" }}</h2>
-          <p class="profile-username">@{{ userData.username || "нет" }}</p>
-        </div>
-      </div>
-
-      <div class="profile-stats">
-        <div class="profile-stat">
-          <span class="profile-stat-label">Тариф</span>
-          <span class="profile-stat-value blue">{{
-            userData.subscription || "FREE"
-          }}</span>
-        </div>
-        <div class="profile-stat">
-          <span class="profile-stat-label">Тренировок</span>
-          <span class="profile-stat-value">{{
-            userData.total_workouts || 0
-          }}</span>
-        </div>
-        <div class="profile-stat">
-          <span class="profile-stat-label">Серия</span>
-          <span class="profile-stat-value green"
-            >{{ userData.current_streak || 0 }} дней 🔥</span
-          >
-        </div>
-        <div class="profile-stat">
-          <span class="profile-stat-label">Вес</span>
-          <span class="profile-stat-value"
-            >{{ userData.weight || "—" }} кг</span
-          >
-        </div>
-        <div class="profile-stat">
-          <span class="profile-stat-label">Цель</span>
-          <span class="profile-stat-value">{{
-            userData.goal || "Не указана"
-          }}</span>
-        </div>
-        <div class="profile-stat">
-          <span class="profile-stat-label">Опыт</span>
-          <span class="profile-stat-value">{{
-            userData.experience || "—"
-          }}</span>
-        </div>
-      </div>
-
-      <button class="profile-btn" @click="editProfile">
-        ✏️ Редактировать профиль
-      </button>
-    </div>
-
-    <div v-else-if="loading" class="loading">Загрузка...</div>
-    <div v-else-if="error" class="error">{{ error }}</div>
-  </div>
-</template>
-
 <script setup>
 import { onMounted, ref } from "vue";
 import { useTelegram } from "~/composables/useTelegram";
@@ -71,16 +7,14 @@ const userData = ref(null);
 const loading = ref(true);
 const error = ref(null);
 
-// API URL (замени на свой)
-const API_URL = "http://localhost:8000";
-
-const editProfile = () => {
-  alert("Редактирование профиля через бота");
-};
+// ТВОЙ РЕАЛЬНЫЙ URL API (который работает в браузере)
+const API_URL = "https://твой-сайт.vercel.app"; // или твой реальный домен
 
 onMounted(async () => {
   try {
+    // 1. Проверяем, что приходит от Telegram
     const tgUser = getUser();
+    console.log("📱 Telegram user:", tgUser);
 
     if (!tgUser) {
       error.value = "Не удалось получить данные пользователя из Telegram";
@@ -88,38 +22,29 @@ onMounted(async () => {
       return;
     }
 
-    console.log("Telegram user:", tgUser);
+    // 2. Проверяем, какой ID получаем
+    const userId = tgUser.id;
+    console.log("🆔 User ID:", userId);
 
-    // Запрашиваем данные из API
-    const response = await fetch(
-      `${API_URL}/api/user?telegram_id=${tgUser.id}`
-    );
+    // 3. Делаем запрос к API
+    const url = `${API_URL}/api/user?telegram_id=${userId}`;
+    console.log("🌐 Запрос к API:", url);
+
+    const response = await fetch(url);
+    console.log("📦 Статус ответа:", response.status);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log("User data from API:", data);
+    console.log("✅ Данные от API:", data);
 
     userData.value = data;
     loading.value = false;
   } catch (err) {
-    console.error("Ошибка загрузки данных:", err);
+    console.error("❌ Ошибка:", err);
     error.value = "Ошибка загрузки данных: " + err.message;
-
-    // Если API не доступен — показываем данные из Telegram (заглушка)
-    const tgUser = getUser();
-    userData.value = {
-      first_name: tgUser?.first_name || "Гость",
-      username: tgUser?.username || "нет",
-      subscription: "BASIC",
-      total_workouts: 0,
-      current_streak: 0,
-      weight: "—",
-      goal: "Не указана",
-      experience: "—",
-    };
     loading.value = false;
   }
 });

@@ -2,7 +2,9 @@
 export const useTelegram = () => {
   const getTg = () => {
     if (process.client) {
-      return (window as any).Telegram?.WebApp;
+      const tg = (window as any).Telegram?.WebApp;
+      console.log("🔍 Telegram.WebApp:", tg ? "найден" : "не найден");
+      return tg;
     }
     return null;
   };
@@ -13,8 +15,10 @@ export const useTelegram = () => {
       tg.ready();
       tg.expand();
       console.log("✅ Telegram WebApp initialized");
+      console.log("📦 initDataUnsafe:", tg.initDataUnsafe);
     } else {
       console.warn("⚠️ Telegram WebApp not found");
+      console.log("📍 Window location:", window.location.href);
     }
   };
 
@@ -35,10 +39,11 @@ export const useTelegram = () => {
   const getUser = () => {
     const tg = getTg();
     if (tg) {
-      console.log("📱 Telegram user data:", tg.initDataUnsafe?.user);
-      return tg.initDataUnsafe?.user;
+      const user = tg.initDataUnsafe?.user;
+      console.log("👤 User from Telegram:", user);
+      return user;
     }
-    console.warn("⚠️ No Telegram user data");
+    console.warn("⚠️ No Telegram WebApp");
     return null;
   };
 
