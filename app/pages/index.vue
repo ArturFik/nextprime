@@ -3,7 +3,7 @@
     <!-- Приветствие -->
     <div class="greeting-card">
       <h1 class="greeting-title">
-        Привет, {{ user?.first_name || "Гость" }}! 👋
+        Привет, {{ userData?.first_name || "Гость" }}! 👋
       </h1>
       <p class="greeting-subtitle">{{ today }}</p>
     </div>
@@ -11,27 +11,29 @@
     <!-- Статистика -->
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-value blue">12</div>
+        <div class="stat-value blue">{{ userData?.total_workouts || 0 }}</div>
         <div class="stat-label">Тренировок</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value green">7</div>
+        <div class="stat-value green">{{ userData?.current_streak || 0 }}</div>
         <div class="stat-label">Дней подряд</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value orange">73</div>
+        <div class="stat-value orange">{{ userData?.weight || "—" }}</div>
         <div class="stat-label">Вес, кг</div>
       </div>
     </div>
 
     <!-- Сегодняшняя тренировка -->
-    <div class="workout-today">
+    <div class="workout-today" v-if="todayWorkout">
       <div class="workout-today-left">
         <p class="workout-today-label">Сегодня</p>
-        <h3 class="workout-today-title">Грудь + Трицепс</h3>
-        <p class="workout-today-info">3 упражнения, ~45 мин</p>
+        <h3 class="workout-today-title">{{ todayWorkout.name }}</h3>
+        <p class="workout-today-info">
+          {{ todayWorkout.exercises_count }} упражнений
+        </p>
       </div>
-      <button class="btn-start">Начать</button>
+      <button class="btn-start" @click="startWorkout">Начать</button>
     </div>
 
     <!-- Прогресс за неделю -->
@@ -54,19 +56,12 @@
 import { onMounted, ref } from "vue";
 import { useTelegram } from "~/composables/useTelegram";
 
-const { getUser } = useTelegram();
-const user = ref(null);
+const { getUser, fetchUserData, sendData } = useTelegram();
+const userData = ref(null);
+const todayWorkout = ref(null);
+const loading = ref(true);
 
-onMounted(() => {
-  user.value = getUser();
-});
-
-const today = new Date().toLocaleDateString("ru-RU", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-});
-
+// Данные для графика (заглушка, потом заменим на реальные)
 const weekData = [
   { label: "Пн", value: 60, color: "#3b82f6" },
   { label: "Вт", value: 70, color: "#3b82f6" },
@@ -76,6 +71,49 @@ const weekData = [
   { label: "Сб", value: 90, color: "#3b82f6" },
   { label: "Вс", value: 85, color: "#3b82f6" },
 ];
+
+const today = new Date().toLocaleDateString("ru-RU", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
+
+const startWorkout = () => {
+  // Отправляем запрос в бот
+  sendData({ action: "start_workout" });
+};
+
+onMounted(async () => {
+  // Получаем данные пользователя
+  const tgUser = getUser();
+  if (tgUser) {
+    userData.value = tgUser;
+    // Здесь должен быть запрос к боту за полными данными
+    // userData.value = await fetchUserData()
+  }
+
+  // Пример реальных данных (потом заменишь на данные из БД)
+  userData.value = {
+    first_name: tgUser?.first_name || "Гость",
+    total_workouts: 12,
+    current_streak: 7,
+    weight: 73,
+    goal: "Набрать массу",
+    subscription: "BASIC",
+  };
+
+  todayWorkout.value = {
+    name: "Грудь + Трицепс",
+    exercises_count: 3,
+    exercises: [
+      "Жим лёжа 3x10",
+      "Разводка гантелей 3x12",
+      "Французский жим 3x8",
+    ],
+  };
+
+  loading.value = false;
+});
 </script>
 
 <style scoped>
@@ -217,5 +255,11 @@ const weekData = [
 .chart-label {
   font-size: 10px;
   color: #9ca3af;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
 }
 </style>

@@ -2,38 +2,62 @@
   <div>
     <h1 class="page-title">👤 Профиль</h1>
 
-    <div class="profile-card">
+    <div class="profile-card" v-if="userData">
       <div class="profile-header">
         <div class="profile-avatar">
-          {{ user?.first_name?.[0] || "?" }}
+          {{ userData.first_name?.[0] || "?" }}
         </div>
         <div class="profile-info">
-          <h2 class="profile-name">{{ user?.first_name || "Гость" }}</h2>
-          <p class="profile-username">@{{ user?.username || "нет" }}</p>
+          <h2 class="profile-name">{{ userData.first_name || "Гость" }}</h2>
+          <p class="profile-username">@{{ userData.username || "нет" }}</p>
         </div>
       </div>
 
       <div class="profile-stats">
         <div class="profile-stat">
           <span class="profile-stat-label">Тариф</span>
-          <span class="profile-stat-value blue">BASIC</span>
+          <span class="profile-stat-value blue">{{
+            userData.subscription || "FREE"
+          }}</span>
         </div>
         <div class="profile-stat">
           <span class="profile-stat-label">Тренировок</span>
-          <span class="profile-stat-value">12</span>
+          <span class="profile-stat-value">{{
+            userData.total_workouts || 0
+          }}</span>
         </div>
         <div class="profile-stat">
           <span class="profile-stat-label">Серия</span>
-          <span class="profile-stat-value green">7 дней 🔥</span>
+          <span class="profile-stat-value green"
+            >{{ userData.current_streak || 0 }} дней 🔥</span
+          >
         </div>
         <div class="profile-stat">
           <span class="profile-stat-label">Вес</span>
-          <span class="profile-stat-value">73 кг</span>
+          <span class="profile-stat-value"
+            >{{ userData.weight || "—" }} кг</span
+          >
+        </div>
+        <div class="profile-stat">
+          <span class="profile-stat-label">Цель</span>
+          <span class="profile-stat-value">{{
+            userData.goal || "Не указана"
+          }}</span>
+        </div>
+        <div class="profile-stat">
+          <span class="profile-stat-label">Опыт</span>
+          <span class="profile-stat-value">{{
+            userData.experience || "—"
+          }}</span>
         </div>
       </div>
 
-      <button class="profile-btn">✏️ Редактировать профиль</button>
+      <button class="profile-btn" @click="editProfile">
+        ✏️ Редактировать профиль
+      </button>
     </div>
+
+    <div v-else class="loading">Загрузка...</div>
   </div>
 </template>
 
@@ -42,10 +66,28 @@ import { onMounted, ref } from "vue";
 import { useTelegram } from "~/composables/useTelegram";
 
 const { getUser } = useTelegram();
-const user = ref(null);
+const userData = ref(null);
+
+const editProfile = () => {
+  // Отправляем запрос в бот
+  alert("Редактирование профиля через бота");
+};
 
 onMounted(() => {
-  user.value = getUser();
+  const tgUser = getUser();
+  if (tgUser) {
+    // Здесь должны быть реальные данные из бота
+    userData.value = {
+      first_name: tgUser.first_name || "Гость",
+      username: tgUser.username || "нет",
+      subscription: "BASIC",
+      total_workouts: 12,
+      current_streak: 7,
+      weight: 73,
+      goal: "Набрать массу",
+      experience: "Средний (3-12 месяцев)",
+    };
+  }
 });
 </script>
 
@@ -138,5 +180,11 @@ onMounted(() => {
 
 .profile-btn:hover {
   background: #e5e7eb;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
 }
 </style>
