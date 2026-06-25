@@ -63,7 +63,21 @@
         </div>
       </div>
 
-      <button class="profile-btn" @click="editProfile">
+      <!-- После силовых -->
+      <div
+        v-if="trainerProgram && trainerProgram.has_program"
+        class="trainer-program"
+      >
+        <h3>👨‍🏫 Программа от тренера</h3>
+        <div class="program-text">{{ trainerProgram.program }}</div>
+        <p class="program-updated">
+          Обновлено:
+          {{ new Date(trainerProgram.updated_at).toLocaleDateString() }}
+        </p>
+      </div>
+
+      <!-- В самом низу, перед кнопкой "Редактировать" -->
+      <button class="profile-btn" @click="$router.push('/profile/edit')">
         ✏️ Редактировать профиль
       </button>
     </div>
@@ -76,13 +90,18 @@ import { useTelegram } from "~/composables/useTelegram";
 import { useApi } from "~/composables/useApi";
 
 const { getUser } = useTelegram();
-const { getUserData } = useApi();
 
 const userData = ref(null);
 const loading = ref(true);
 const error = ref(null);
 
 const editProfile = () => alert("Редактирование профиля через бота");
+
+const { getUserData, getTrainerProgram } = useApi();
+const trainerProgram = ref(null);
+
+// В блоке try добавь:
+trainerProgram.value = await getTrainerProgram(tgUser.id);
 
 onMounted(async () => {
   const tgUser = getUser();
