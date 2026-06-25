@@ -1,8 +1,20 @@
+<!-- app.vue -->
 <template>
   <NuxtLayout>
     <NuxtPage />
   </NuxtLayout>
 </template>
+
+<script setup>
+useHead({
+  script: [
+    {
+      src: "https://telegram.org/js/telegram-web-app.js",
+      defer: true,
+    },
+  ],
+});
+</script>
 
 <style>
 * {
@@ -12,7 +24,7 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: #f5f7fa;
   color: #1a1a2e;
   padding-bottom: 70px;

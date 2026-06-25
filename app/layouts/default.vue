@@ -1,3 +1,4 @@
+<!-- layouts/default.vue -->
 <template>
   <div class="app-container">
     <Header />
@@ -9,8 +10,15 @@
 </template>
 
 <script setup>
-import Header from '~/components/Header.vue'
-import BottomNav from '~/components/BottomNav.vue'
+import { onMounted } from "vue";
+import { useTelegram } from "~/composables/useTelegram";
+
+const { init } = useTelegram();
+
+onMounted(() => {
+  // Инициализируем Telegram WebApp
+  init();
+});
 </script>
 
 <style scoped>
