@@ -1,98 +1,144 @@
 <template>
   <div>
     <h1 class="page-title">🏋️ Тренировки</h1>
-    
-    <!-- Календарь -->
-    <div class="calendar">
-      <div class="calendar-week">
-        <div v-for="day in daysOfWeek" :key="day" class="calendar-week-label">
-          {{ day }}
-        </div>
-      </div>
-      <div class="calendar-grid">
-        <div 
-          v-for="day in calendarDays" 
-          :key="day.date"
-          class="calendar-day"
-          :class="{
-            'calendar-day-today': day.isToday,
-            'calendar-day-workout': day.isWorkout
-          }"
+
+    <div v-if="loading" class="loading">Загрузка...</div>
+    <div v-else-if="error" class="error">{{ error }}</div>
+    <div v-else>
+      <!-- Сегодняшняя тренировка -->
+      <div v-if="todayWorkout" class="today-workout">
+        <h3>📌 Сегодня</h3>
+        <h2>{{ todayWorkout.program_name || "Тренировка" }}</h2>
+        <div
+          v-for="(ex, i) in todayWorkout.exercises"
+          :key="i"
+          class="exercise-item"
         >
-          {{ day.day }}
+          {{ ex }}
+        </div>
+        <button v-if="todayWorkout.has_complete_button" class="start-btn">
+          ✅ Завершить тренировку
+        </button>
+      </div>
+
+      <!-- Календарь -->
+      <div class="calendar">
+        <div class="calendar-header">
+          <button @click="prevMonth">‹</button>
+          <span>{{ currentMonth }} {{ currentYear }}</span>
+          <button @click="nextMonth">›</button>
+        </div>
+        <div class="calendar-grid">
+          <div v-for="day in weekDays" :key="day" class="calendar-label">
+            {{ day }}
+          </div>
+          <div
+            v-for="day in calendarDays"
+            :key="day.date"
+            class="calendar-day"
+            :class="{ today: day.isToday, completed: day.isWorkout }"
+          >
+            {{ day.day }}
+          </div>
         </div>
       </div>
-    </div>
-    
-    <!-- Список тренировок -->
-    <div class="workout-list">
-      <WorkoutCard 
-        v-for="workout in workouts" 
-        :key="workout.id"
-        :title="workout.title"
-        :exercises="workout.exercises"
-        :duration="workout.duration"
-        :completed="workout.completed"
-      />
     </div>
   </div>
 </template>
 
 <script setup>
-import WorkoutCard from '~/components/WorkoutCard.vue'
+import { onMounted, ref, computed } from "vue";
+import { useTelegram } from "~/composables/useTelegram";
 
-const daysOfWeek = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+const { getUser } = useTelegram();
+const loading = ref(true);
+const error = ref(null);
+const todayWorkout = ref(null);
+const currentMonth = ref(new Date().getMonth());
+const currentYear = ref(new Date().getFullYear());
 
-const calendarDays = [
-  { day: 1, date: '2024-01-01', isToday: false, isWorkout: false },
-  { day: 2, date: '2024-01-02', isToday: false, isWorkout: true },
-  { day: 3, date: '2024-01-03', isToday: false, isWorkout: false },
-  { day: 4, date: '2024-01-04', isToday: false, isWorkout: true },
-  { day: 5, date: '2024-01-05', isToday: false, isWorkout: false },
-  { day: 6, date: '2024-01-06', isToday: false, isWorkout: true },
-  { day: 7, date: '2024-01-07', isToday: false, isWorkout: false },
-  { day: 8, date: '2024-01-08', isToday: false, isWorkout: false },
-  { day: 9, date: '2024-01-09', isToday: false, isWorkout: true },
-  { day: 10, date: '2024-01-10', isToday: false, isWorkout: false },
-  { day: 11, date: '2024-01-11', isToday: false, isWorkout: true },
-  { day: 12, date: '2024-01-12', isToday: false, isWorkout: false },
-  { day: 13, date: '2024-01-13', isToday: false, isWorkout: true },
-  { day: 14, date: '2024-01-14', isToday: false, isWorkout: false },
-  { day: 15, date: '2024-01-15', isToday: true, isWorkout: true },
-  { day: 16, date: '2024-01-16', isToday: false, isWorkout: false },
-  { day: 17, date: '2024-01-17', isToday: false, isWorkout: true },
-  { day: 18, date: '2024-01-18', isToday: false, isWorkout: false },
-  { day: 19, date: '2024-01-19', isToday: false, isWorkout: true },
-  { day: 20, date: '2024-01-20', isToday: false, isWorkout: false },
-  { day: 21, date: '2024-01-21', isToday: false, isWorkout: true },
-  { day: 22, date: '2024-01-22', isToday: false, isWorkout: false },
-  { day: 23, date: '2024-01-23', isToday: false, isWorkout: true },
-  { day: 24, date: '2024-01-24', isToday: false, isWorkout: false },
-  { day: 25, date: '2024-01-25', isToday: false, isWorkout: true },
-  { day: 26, date: '2024-01-26', isToday: false, isWorkout: false },
-  { day: 27, date: '2024-01-27', isToday: false, isWorkout: true },
-  { day: 28, date: '2024-01-28', isToday: false, isWorkout: false },
-  { day: 29, date: '2024-01-29', isToday: false, isWorkout: true },
-  { day: 30, date: '2024-01-30', isToday: false, isWorkout: false },
-  { day: 31, date: '2024-01-31', isToday: false, isWorkout: true },
-]
+const weekDays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+const API_URL = import.meta.env.VITE_API_URL || "";
 
-const workouts = [
-  {
-    id: 1,
-    title: 'Грудь + Трицепс',
-    exercises: ['Жим лёжа 3x10', 'Разводка гантелей 3x12', 'Французский жим 3x8'],
-    duration: '45 мин',
-    completed: false,
-  },
-  {
-    id: 2,
-    title: 'Спина + Бицепс',
-    exercises: ['Подтягивания 4x6', 'Тяга штанги 3x10', 'Подъём на бицепс 3x12'],
-    duration: '50 мин',
-    completed: true,
-  },
-]
+const calendarDays = computed(() => {
+  const days = [];
+  const firstDay = new Date(currentYear.value, currentMonth.value, 1).getDay();
+  const daysInMonth = new Date(
+    currentYear.value,
+    currentMonth.value + 1,
+    0
+  ).getDate();
+  const today = new Date();
+
+  // Пустые ячейки до первого дня месяца
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+
+  for (let i = 0; i < startOffset; i++) {
+    days.push({ day: "", date: null, isToday: false, isWorkout: false });
+  }
+
+  for (let i = 1; i <= daysInMonth; i++) {
+    const isToday =
+      i === today.getDate() &&
+      currentMonth.value === today.getMonth() &&
+      currentYear.value === today.getFullYear();
+    days.push({
+      day: i,
+      date: `${currentYear.value}-${String(currentMonth.value + 1).padStart(
+        2,
+        "0"
+      )}-${String(i).padStart(2, "0")}`,
+      isToday,
+      isWorkout: i % 2 === 0, // заглушка
+    });
+  }
+
+  return days;
+});
+
+const loadTodayWorkout = async () => {
+  const tgUser = getUser();
+  if (!tgUser) {
+    error.value = "Не удалось получить данные";
+    loading.value = false;
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${API_URL}/api/workouts/today?telegram_id=${tgUser.id}`
+    );
+    if (!response.ok) throw new Error("Ошибка загрузки");
+    todayWorkout.value = await response.json();
+  } catch (err) {
+    console.error(err);
+    error.value = "Ошибка загрузки тренировки";
+  } finally {
+    loading.value = false;
+  }
+};
+
+const prevMonth = () => {
+  if (currentMonth.value === 0) {
+    currentMonth.value = 11;
+    currentYear.value--;
+  } else {
+    currentMonth.value--;
+  }
+};
+
+const nextMonth = () => {
+  if (currentMonth.value === 11) {
+    currentMonth.value = 0;
+    currentYear.value++;
+  } else {
+    currentMonth.value++;
+  }
+};
+
+onMounted(() => {
+  loadTodayWorkout();
+});
 </script>
 
 <style scoped>
@@ -101,35 +147,72 @@ const workouts = [
   font-weight: 700;
   margin-bottom: 16px;
 }
-
+.today-workout {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  margin-bottom: 16px;
+}
+.today-workout h3 {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+.today-workout h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.exercise-item {
+  padding: 6px 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+  color: #4b5563;
+}
+.start-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
 .calendar {
   background: #fff;
   border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
-
-.calendar-week {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-  margin-bottom: 8px;
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
 }
-
-.calendar-week-label {
-  text-align: center;
-  font-size: 11px;
-  font-weight: 600;
-  color: #9ca3af;
+.calendar-header button {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 12px;
 }
-
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 4px;
 }
-
+.calendar-label {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  padding: 4px 0;
+}
 .calendar-day {
   aspect-ratio: 1;
   display: flex;
@@ -137,25 +220,25 @@ const workouts = [
   justify-content: center;
   font-size: 14px;
   border-radius: 8px;
-  transition: all 0.2s;
   background: #f3f4f6;
   color: #4b5563;
 }
-
-.calendar-day-today {
+.calendar-day.today {
   background: #2563eb;
   color: #fff;
   font-weight: 600;
 }
-
-.calendar-day-workout {
+.calendar-day.completed {
   background: #dcfce7;
   color: #166534;
 }
-
-.workout-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.loading,
+.error {
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
+}
+.error {
+  color: #dc2626;
 }
 </style>

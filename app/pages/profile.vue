@@ -1,3 +1,80 @@
+<template>
+  <div>
+    <h1 class="page-title">👤 Профиль</h1>
+
+    <div v-if="loading" class="loading">Загрузка...</div>
+    <div v-else-if="error" class="error">{{ error }}</div>
+    <div v-else-if="userData" class="profile-card">
+      <div class="profile-header">
+        <div class="profile-avatar">{{ userData.first_name?.[0] || "?" }}</div>
+        <div class="profile-info">
+          <h2 class="profile-name">{{ userData.first_name || "Гость" }}</h2>
+          <p class="profile-username">@{{ userData.username || "нет" }}</p>
+        </div>
+      </div>
+
+      <div class="profile-stats">
+        <div class="profile-stat">
+          <span>Тариф</span>
+          <span class="blue">{{
+            userData.subscription?.toUpperCase() || "FREE"
+          }}</span>
+        </div>
+        <div class="profile-stat">
+          <span>Тренировок</span>
+          <span>{{ userData.total_workouts || 0 }}</span>
+        </div>
+        <div class="profile-stat">
+          <span>Серия</span>
+          <span class="green">{{ userData.current_streak || 0 }} дней 🔥</span>
+        </div>
+        <div class="profile-stat">
+          <span>Вес</span>
+          <span>{{ userData.weight || "—" }} кг</span>
+        </div>
+        <div class="profile-stat">
+          <span>Рост</span>
+          <span>{{ userData.height || "—" }} см</span>
+        </div>
+        <div class="profile-stat">
+          <span>Возраст</span>
+          <span>{{ userData.age || "—" }}</span>
+        </div>
+        <div class="profile-stat">
+          <span>Пол</span>
+          <span>{{ userData.gender || "—" }}</span>
+        </div>
+        <div class="profile-stat">
+          <span>Цель</span>
+          <span>{{ userData.goal || "—" }}</span>
+        </div>
+        <div class="profile-stat">
+          <span>Опыт</span>
+          <span>{{ userData.experience || "—" }}</span>
+        </div>
+      </div>
+
+      <div class="strength-section">
+        <h3>🏋️ Силовые</h3>
+        <div class="strength-grid">
+          <div>
+            <span>Жим</span>
+            <strong>{{ userData.bench_press || "—" }} кг</strong>
+          </div>
+          <div>
+            <span>Присед</span> <strong>{{ userData.squat || "—" }} кг</strong>
+          </div>
+          <div>
+            <span>Тяга</span> <strong>{{ userData.deadlift || "—" }} кг</strong>
+          </div>
+        </div>
+      </div>
+
+      <button class="profile-btn">✏️ Редактировать профиль</button>
+    </div>
+  </div>
+</template>
+
 <script setup>
 import { onMounted, ref } from "vue";
 import { useTelegram } from "~/composables/useTelegram";
@@ -7,44 +84,27 @@ const userData = ref(null);
 const loading = ref(true);
 const error = ref(null);
 
-// ТВОЙ РЕАЛЬНЫЙ URL API (который работает в браузере)
-const API_URL = "https://nextprime-three.vercel.app/"; // или твой реальный домен
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 onMounted(async () => {
   try {
-    // 1. Проверяем, что приходит от Telegram
     const tgUser = getUser();
-    console.log("📱 Telegram user:", tgUser);
-
     if (!tgUser) {
-      error.value = "Не удалось получить данные пользователя из Telegram";
+      error.value = "Не удалось получить данные из Telegram";
       loading.value = false;
       return;
     }
 
-    // 2. Проверяем, какой ID получаем
-    const userId = tgUser.id;
-    console.log("🆔 User ID:", userId);
+    const response = await fetch(
+      `${API_URL}/api/user?telegram_id=${tgUser.id}`
+    );
+    if (!response.ok) throw new Error("Ошибка загрузки");
 
-    // 3. Делаем запрос к API
-    const url = `${API_URL}/api/user?telegram_id=${userId}`;
-    console.log("🌐 Запрос к API:", url);
-
-    const response = await fetch(url);
-    console.log("📦 Статус ответа:", response.status);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log("✅ Данные от API:", data);
-
-    userData.value = data;
+    userData.value = await response.json();
     loading.value = false;
   } catch (err) {
-    console.error("❌ Ошибка:", err);
-    error.value = "Ошибка загрузки данных: " + err.message;
+    console.error(err);
+    error.value = "Ошибка загрузки данных";
     loading.value = false;
   }
 });
@@ -56,14 +116,12 @@ onMounted(async () => {
   font-weight: 700;
   margin-bottom: 16px;
 }
-
 .profile-card {
   background: #fff;
   border-radius: 16px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
-
 .profile-header {
   display: flex;
   align-items: center;
@@ -71,7 +129,6 @@ onMounted(async () => {
   padding-bottom: 16px;
   border-bottom: 1px solid #f3f4f6;
 }
-
 .profile-avatar {
   width: 60px;
   height: 60px;
@@ -84,72 +141,79 @@ onMounted(async () => {
   font-size: 26px;
   font-weight: 600;
 }
-
 .profile-name {
   font-size: 20px;
   font-weight: 700;
 }
-
 .profile-username {
   font-size: 14px;
   color: #6b7280;
 }
-
 .profile-stats {
   padding-top: 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-
 .profile-stat {
   display: flex;
   justify-content: space-between;
-  align-items: center;
   padding: 8px 0;
   border-bottom: 1px solid #f9fafb;
 }
-
-.profile-stat-label {
+.profile-stat .blue {
+  color: #2563eb;
+  font-weight: 600;
+}
+.profile-stat .green {
+  color: #22c55e;
+  font-weight: 600;
+}
+.strength-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f3f4f6;
+}
+.strength-section h3 {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+.strength-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.strength-grid div {
+  background: #f3f4f6;
+  padding: 10px;
+  border-radius: 8px;
+  text-align: center;
+}
+.strength-grid span {
+  display: block;
+  font-size: 12px;
   color: #6b7280;
 }
-
-.profile-stat-value {
-  font-weight: 500;
+.strength-grid strong {
+  font-size: 16px;
 }
-
-.profile-stat-value.blue {
-  color: #2563eb;
-}
-.profile-stat-value.green {
-  color: #22c55e;
-}
-
 .profile-btn {
   width: 100%;
   margin-top: 16px;
   padding: 10px;
   border-radius: 8px;
   background: #f3f4f6;
-  color: #4b5563;
+  border: none;
   font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
+  cursor: pointer;
 }
-
-.profile-btn:hover {
-  background: #e5e7eb;
-}
-
-.loading {
+.loading,
+.error {
   text-align: center;
   padding: 40px;
   color: #6b7280;
 }
-
 .error {
-  text-align: center;
-  padding: 40px;
   color: #dc2626;
 }
 </style>

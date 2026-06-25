@@ -1,51 +1,67 @@
 <template>
   <div>
-    <!-- Приветствие -->
-    <div class="greeting-card">
-      <h1 class="greeting-title">
-        Привет, {{ userData?.first_name || "Гость" }}! 👋
-      </h1>
-      <p class="greeting-subtitle">{{ today }}</p>
-    </div>
+    <div v-if="loading" class="loading">Загрузка...</div>
+    <div v-else-if="error" class="error">{{ error }}</div>
+    <div v-else>
+      <!-- Приветствие -->
+      <div class="greeting-card">
+        <h1 class="greeting-title">
+          Привет, {{ userData?.first_name || "Гость" }}! 👋
+        </h1>
+        <p class="greeting-subtitle">{{ today }}</p>
+      </div>
 
-    <!-- Статистика -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-value blue">{{ userData?.total_workouts || 0 }}</div>
-        <div class="stat-label">Тренировок</div>
+      <!-- Статистика -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value blue">{{ userData?.total_workouts || 0 }}</div>
+          <div class="stat-label">Тренировок</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value green">
+            {{ userData?.current_streak || 0 }}
+          </div>
+          <div class="stat-label">Дней подряд</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value orange">{{ userData?.weight || "—" }}</div>
+          <div class="stat-label">Вес, кг</div>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-value green">{{ userData?.current_streak || 0 }}</div>
-        <div class="stat-label">Дней подряд</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value orange">{{ userData?.weight || "—" }}</div>
-        <div class="stat-label">Вес, кг</div>
-      </div>
-    </div>
 
-    <!-- Сегодняшняя тренировка -->
-    <div class="workout-today" v-if="todayWorkout">
-      <div class="workout-today-left">
-        <p class="workout-today-label">Сегодня</p>
-        <h3 class="workout-today-title">{{ todayWorkout.name }}</h3>
-        <p class="workout-today-info">
-          {{ todayWorkout.exercises_count }} упражнений
-        </p>
+      <!-- Сегодняшняя тренировка -->
+      <div v-if="todayWorkout" class="workout-today">
+        <div class="workout-today-left">
+          <p class="workout-today-label">Сегодня</p>
+          <h3 class="workout-today-title">
+            {{ todayWorkout.program_name || "Тренировка" }}
+          </h3>
+          <p class="workout-today-info">
+            {{ todayWorkout.exercises?.length || 0 }} упражнений
+          </p>
+        </div>
+        <button class="btn-start" @click="startWorkout">Начать</button>
       </div>
-      <button class="btn-start" @click="startWorkout">Начать</button>
-    </div>
 
-    <!-- Прогресс за неделю -->
-    <div class="week-chart">
-      <h3 class="chart-title">Вес за неделю</h3>
-      <div class="chart-bars">
-        <div v-for="(day, i) in weekData" :key="i" class="chart-bar-wrapper">
+      <!-- Прогресс за неделю (график) -->
+      <div v-if="weightHistory" class="week-chart">
+        <h3 class="chart-title">Вес за неделю</h3>
+        <div class="chart-bars">
           <div
-            class="chart-bar"
-            :style="{ height: day.value + '%', background: day.color }"
-          ></div>
-          <span class="chart-label">{{ day.label }}</span>
+            v-for="(item, i) in weightHistory"
+            :key="i"
+            class="chart-bar-wrapper"
+          >
+            <div
+              class="chart-bar"
+              :style="{
+                height: Math.max((item.weight / maxWeight) * 100, 10) + '%',
+                background:
+                  item.weight === currentWeight ? '#2563eb' : '#93c5fd',
+              }"
+            ></div>
+            <span class="chart-label">{{ item.date }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -53,70 +69,100 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
+import { onMounted, ref, computed } from "vue";
 import { useTelegram } from "~/composables/useTelegram";
 
-const { getUser, fetchUserData, sendData } = useTelegram();
+const { getUser, sendData } = useTelegram();
+const loading = ref(true);
+const error = ref(null);
 const userData = ref(null);
 const todayWorkout = ref(null);
-const loading = ref(true);
+const weightHistory = ref(null);
 
-// Данные для графика (заглушка, потом заменим на реальные)
-const weekData = [
-  { label: "Пн", value: 60, color: "#3b82f6" },
-  { label: "Вт", value: 70, color: "#3b82f6" },
-  { label: "Ср", value: 65, color: "#3b82f6" },
-  { label: "Чт", value: 80, color: "#3b82f6" },
-  { label: "Пт", value: 75, color: "#3b82f6" },
-  { label: "Сб", value: 90, color: "#3b82f6" },
-  { label: "Вс", value: 85, color: "#3b82f6" },
-];
+const API_URL = import.meta.env.VITE_API_URL || "";
 
-const today = new Date().toLocaleDateString("ru-RU", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
+const today = computed(() => {
+  return new Date().toLocaleDateString("ru-RU", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+});
+
+const currentWeight = computed(() => {
+  if (!weightHistory.value || weightHistory.value.length === 0) return null;
+  return weightHistory.value[weightHistory.value.length - 1]?.weight;
+});
+
+const maxWeight = computed(() => {
+  if (!weightHistory.value || weightHistory.value.length === 0) return 100;
+  const weights = weightHistory.value.map((item) => item.weight);
+  return Math.max(...weights) * 1.1;
 });
 
 const startWorkout = () => {
-  // Отправляем запрос в бот
   sendData({ action: "start_workout" });
 };
 
-onMounted(async () => {
-  // Получаем данные пользователя
+const loadUserData = async () => {
   const tgUser = getUser();
-  if (tgUser) {
-    userData.value = tgUser;
-    // Здесь должен быть запрос к боту за полными данными
-    // userData.value = await fetchUserData()
+  if (!tgUser) {
+    error.value = "Не удалось получить данные из Telegram";
+    loading.value = false;
+    return;
   }
 
-  // Пример реальных данных (потом заменишь на данные из БД)
-  userData.value = {
-    first_name: tgUser?.first_name || "Гость",
-    total_workouts: 12,
-    current_streak: 7,
-    weight: 73,
-    goal: "Набрать массу",
-    subscription: "BASIC",
-  };
+  try {
+    // Загружаем данные пользователя
+    const userRes = await fetch(`${API_URL}/api/user?telegram_id=${tgUser.id}`);
+    if (!userRes.ok) throw new Error("Ошибка загрузки пользователя");
+    userData.value = await userRes.json();
 
-  todayWorkout.value = {
-    name: "Грудь + Трицепс",
-    exercises_count: 3,
-    exercises: [
-      "Жим лёжа 3x10",
-      "Разводка гантелей 3x12",
-      "Французский жим 3x8",
-    ],
-  };
+    // Загружаем сегодняшнюю тренировку
+    const workoutRes = await fetch(
+      `${API_URL}/api/workouts/today?telegram_id=${tgUser.id}`
+    );
+    if (workoutRes.ok) {
+      todayWorkout.value = await workoutRes.json();
+    }
 
-  loading.value = false;
+    // Загружаем историю веса
+    const weightRes = await fetch(
+      `${API_URL}/api/progress/weight?telegram_id=${tgUser.id}`
+    );
+    if (weightRes.ok) {
+      const data = await weightRes.json();
+      // Преобразуем в формат для графика
+      weightHistory.value = data.labels.map((label, i) => ({
+        date: label,
+        weight: data.values[i],
+      }));
+    }
+
+    loading.value = false;
+  } catch (err) {
+    console.error("Ошибка загрузки:", err);
+    error.value = "Ошибка загрузки данных";
+    loading.value = false;
+  }
+};
+
+onMounted(() => {
+  loadUserData();
 });
 </script>
 
 <style scoped>
+.loading,
+.error {
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
+}
+.error {
+  color: #dc2626;
+}
+
 .greeting-card {
   background: linear-gradient(135deg, #2563eb, #7c3aed);
   border-radius: 16px;
@@ -205,6 +251,8 @@ onMounted(async () => {
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
+  border: none;
+  cursor: pointer;
   transition: background 0.2s;
 }
 
@@ -255,11 +303,5 @@ onMounted(async () => {
 .chart-label {
   font-size: 10px;
   color: #9ca3af;
-}
-
-.loading {
-  text-align: center;
-  padding: 40px;
-  color: #6b7280;
 }
 </style>
