@@ -96,18 +96,18 @@
       <button class="save-btn" @click="saveProfile" :disabled="saving">
         {{ saving ? "Сохранение..." : "💾 Сохранить" }}
       </button>
-      <button class="cancel-btn" @click="$router.push('/profile')">
-        Отмена
-      </button>
+      <button class="cancel-btn" @click="goBack">Отмена</button>
     </div>
   </div>
 </template>
 
 <script setup>
 import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import { useTelegram } from "~/composables/useTelegram";
 import { useApi } from "~/composables/useApi";
 
+const router = useRouter();
 const { getUser } = useTelegram();
 const { getUserData, updateUser } = useApi();
 
@@ -115,6 +115,10 @@ const loading = ref(true);
 const saving = ref(false);
 const error = ref(null);
 const form = ref({});
+
+const goBack = () => {
+  router.push("/profile");
+};
 
 onMounted(async () => {
   const tgUser = getUser();
@@ -129,6 +133,7 @@ onMounted(async () => {
     form.value = { ...data };
     loading.value = false;
   } catch (err) {
+    console.error(err);
     error.value = "Ошибка загрузки данных";
     loading.value = false;
   }
@@ -142,7 +147,7 @@ const saveProfile = async () => {
   try {
     await updateUser(tgUser.id, form.value);
     alert("✅ Профиль обновлён!");
-    await navigateTo("/profile");
+    router.push("/profile");
   } catch (err) {
     alert("❌ Ошибка сохранения");
   } finally {

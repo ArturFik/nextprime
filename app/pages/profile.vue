@@ -96,7 +96,7 @@ const loading = ref(true);
 const error = ref(null);
 
 const goToEdit = () => {
-  router.push("/profile/edit");
+  router.push("/edit");
 };
 
 onMounted(async () => {
