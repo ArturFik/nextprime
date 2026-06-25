@@ -5,7 +5,6 @@
     <div v-if="loading" class="loading">Загрузка...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else>
-      <!-- Сегодняшняя тренировка -->
       <div v-if="todayWorkout" class="today-workout">
         <h3>📌 Сегодня</h3>
         <h2>{{ todayWorkout.program_name || "Тренировка" }}</h2>
@@ -21,7 +20,6 @@
         </button>
       </div>
 
-      <!-- Календарь -->
       <div class="calendar">
         <div class="calendar-header">
           <button @click="prevMonth">‹</button>
@@ -49,16 +47,17 @@
 <script setup>
 import { onMounted, ref, computed } from "vue";
 import { useTelegram } from "~/composables/useTelegram";
+import { useApi } from "~/composables/useApi";
 
 const { getUser } = useTelegram();
+const { getTodayWorkout } = useApi();
+
 const loading = ref(true);
 const error = ref(null);
 const todayWorkout = ref(null);
 const currentMonth = ref(new Date().getMonth());
 const currentYear = ref(new Date().getFullYear());
-
 const weekDays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-const API_URL = "https://residence-earache-golf.ngrok-free.dev";
 
 const calendarDays = computed(() => {
   const days = [];
@@ -69,14 +68,10 @@ const calendarDays = computed(() => {
     0
   ).getDate();
   const today = new Date();
-
-  // Пустые ячейки до первого дня месяца
   const startOffset = firstDay === 0 ? 6 : firstDay - 1;
 
-  for (let i = 0; i < startOffset; i++) {
+  for (let i = 0; i < startOffset; i++)
     days.push({ day: "", date: null, isToday: false, isWorkout: false });
-  }
-
   for (let i = 1; i <= daysInMonth; i++) {
     const isToday =
       i === today.getDate() &&
@@ -89,39 +84,11 @@ const calendarDays = computed(() => {
         "0"
       )}-${String(i).padStart(2, "0")}`,
       isToday,
-      isWorkout: i % 2 === 0, // заглушка
+      isWorkout: i % 2 === 0,
     });
   }
-
   return days;
 });
-
-const loadTodayWorkout = async () => {
-  const tgUser = getUser();
-  if (!tgUser) {
-    error.value = "Не удалось получить данные";
-    loading.value = false;
-    return;
-  }
-
-  try {
-    const response = await fetch(
-      `${API_URL}/api/workouts/today?telegram_id=${tgUser.id}`,
-      {
-        headers: {
-          "ngrok-skip-browser-warning": "true",
-        },
-      }
-    );
-    if (!response.ok) throw new Error("Ошибка загрузки");
-    todayWorkout.value = await response.json();
-  } catch (err) {
-    console.error(err);
-    error.value = "Ошибка загрузки тренировки";
-  } finally {
-    loading.value = false;
-  }
-};
 
 const prevMonth = () => {
   if (currentMonth.value === 0) {
@@ -131,7 +98,6 @@ const prevMonth = () => {
     currentMonth.value--;
   }
 };
-
 const nextMonth = () => {
   if (currentMonth.value === 11) {
     currentMonth.value = 0;
@@ -141,8 +107,22 @@ const nextMonth = () => {
   }
 };
 
-onMounted(() => {
-  loadTodayWorkout();
+onMounted(async () => {
+  const tgUser = getUser();
+  if (!tgUser) {
+    error.value = "Не удалось получить данные";
+    loading.value = false;
+    return;
+  }
+
+  try {
+    todayWorkout.value = await getTodayWorkout(tgUser.id);
+  } catch (err) {
+    console.error(err);
+    error.value = "Ошибка загрузки тренировки";
+  } finally {
+    loading.value = false;
+  }
 });
 </script>
 

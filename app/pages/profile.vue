@@ -15,42 +15,35 @@
 
       <div class="profile-stats">
         <div class="profile-stat">
-          <span>Тариф</span>
-          <span class="blue">{{
+          <span>Тариф</span
+          ><span class="blue">{{
             userData.subscription?.toUpperCase() || "FREE"
           }}</span>
         </div>
         <div class="profile-stat">
-          <span>Тренировок</span>
-          <span>{{ userData.total_workouts || 0 }}</span>
+          <span>Тренировок</span><span>{{ userData.total_workouts || 0 }}</span>
         </div>
         <div class="profile-stat">
-          <span>Серия</span>
-          <span class="green">{{ userData.current_streak || 0 }} дней 🔥</span>
+          <span>Серия</span
+          ><span class="green">{{ userData.current_streak || 0 }} дней 🔥</span>
         </div>
         <div class="profile-stat">
-          <span>Вес</span>
-          <span>{{ userData.weight || "—" }} кг</span>
+          <span>Вес</span><span>{{ userData.weight || "—" }} кг</span>
         </div>
         <div class="profile-stat">
-          <span>Рост</span>
-          <span>{{ userData.height || "—" }} см</span>
+          <span>Рост</span><span>{{ userData.height || "—" }} см</span>
         </div>
         <div class="profile-stat">
-          <span>Возраст</span>
-          <span>{{ userData.age || "—" }}</span>
+          <span>Возраст</span><span>{{ userData.age || "—" }}</span>
         </div>
         <div class="profile-stat">
-          <span>Пол</span>
-          <span>{{ userData.gender || "—" }}</span>
+          <span>Пол</span><span>{{ userData.gender || "—" }}</span>
         </div>
         <div class="profile-stat">
-          <span>Цель</span>
-          <span>{{ userData.goal || "—" }}</span>
+          <span>Цель</span><span>{{ userData.goal || "—" }}</span>
         </div>
         <div class="profile-stat">
-          <span>Опыт</span>
-          <span>{{ userData.experience || "—" }}</span>
+          <span>Опыт</span><span>{{ userData.experience || "—" }}</span>
         </div>
       </div>
 
@@ -58,19 +51,21 @@
         <h3>🏋️ Силовые</h3>
         <div class="strength-grid">
           <div>
-            <span>Жим</span>
-            <strong>{{ userData.bench_press || "—" }} кг</strong>
+            <span>Жим</span
+            ><strong>{{ userData.bench_press || "—" }} кг</strong>
           </div>
           <div>
-            <span>Присед</span> <strong>{{ userData.squat || "—" }} кг</strong>
+            <span>Присед</span><strong>{{ userData.squat || "—" }} кг</strong>
           </div>
           <div>
-            <span>Тяга</span> <strong>{{ userData.deadlift || "—" }} кг</strong>
+            <span>Тяга</span><strong>{{ userData.deadlift || "—" }} кг</strong>
           </div>
         </div>
       </div>
 
-      <button class="profile-btn">✏️ Редактировать профиль</button>
+      <button class="profile-btn" @click="editProfile">
+        ✏️ Редактировать профиль
+      </button>
     </div>
   </div>
 </template>
@@ -78,38 +73,31 @@
 <script setup>
 import { onMounted, ref } from "vue";
 import { useTelegram } from "~/composables/useTelegram";
+import { useApi } from "~/composables/useApi";
 
 const { getUser } = useTelegram();
+const { getUserData } = useApi();
+
 const userData = ref(null);
 const loading = ref(true);
 const error = ref(null);
 
-const API_URL = "https://residence-earache-golf.ngrok-free.dev";
+const editProfile = () => alert("Редактирование профиля через бота");
 
 onMounted(async () => {
-  try {
-    const tgUser = getUser();
-    if (!tgUser) {
-      error.value = "Не удалось получить данные из Telegram";
-      loading.value = false;
-      return;
-    }
-
-    const response = await fetch(
-      `${API_URL}/api/user?telegram_id=${tgUser.id}`,
-      {
-        headers: {
-          "ngrok-skip-browser-warning": "true",
-        },
-      }
-    );
-    if (!response.ok) throw new Error("Ошибка загрузки");
-
-    userData.value = await response.json();
+  const tgUser = getUser();
+  if (!tgUser) {
+    error.value = "Не удалось получить данные из Telegram";
     loading.value = false;
+    return;
+  }
+
+  try {
+    userData.value = await getUserData(tgUser.id);
   } catch (err) {
     console.error(err);
     error.value = "Ошибка загрузки данных";
+  } finally {
     loading.value = false;
   }
 });

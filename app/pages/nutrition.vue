@@ -62,36 +62,29 @@
 <script setup>
 import { onMounted, ref } from "vue";
 import { useTelegram } from "~/composables/useTelegram";
+import { useApi } from "~/composables/useApi";
 
 const { getUser } = useTelegram();
+const { getNutrition } = useApi();
+
 const loading = ref(true);
 const error = ref(null);
 const nutritionData = ref(null);
-const API_URL = "https://residence-earache-golf.ngrok-free.dev";
 
 onMounted(async () => {
-  try {
-    const tgUser = getUser();
-    if (!tgUser) {
-      error.value = "Не удалось получить данные";
-      loading.value = false;
-      return;
-    }
-
-    const response = await fetch(
-      `${API_URL}/api/nutrition/today?telegram_id=${tgUser.id}`,
-      {
-        headers: {
-          "ngrok-skip-browser-warning": "true",
-        },
-      }
-    );
-    if (!response.ok) throw new Error("Ошибка загрузки");
-    nutritionData.value = await response.json();
+  const tgUser = getUser();
+  if (!tgUser) {
+    error.value = "Не удалось получить данные";
     loading.value = false;
+    return;
+  }
+
+  try {
+    nutritionData.value = await getNutrition(tgUser.id);
   } catch (err) {
     console.error(err);
     error.value = "Ошибка загрузки данных питания";
+  } finally {
     loading.value = false;
   }
 });
