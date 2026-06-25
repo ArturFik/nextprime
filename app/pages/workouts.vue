@@ -106,7 +106,12 @@ const loadTodayWorkout = async () => {
 
   try {
     const response = await fetch(
-      `${API_URL}/api/workouts/today?telegram_id=${tgUser.id}`
+      `${API_URL}/api/workouts/today?telegram_id=${tgUser.id}`,
+      {
+        headers: {
+          "ngrok-skip-browser-warning": "true",
+        },
+      }
     );
     if (!response.ok) throw new Error("Ошибка загрузки");
     todayWorkout.value = await response.json();

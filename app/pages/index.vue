@@ -114,13 +114,25 @@ const loadUserData = async () => {
 
   try {
     // Загружаем данные пользователя
-    const userRes = await fetch(`${API_URL}/api/user?telegram_id=${tgUser.id}`);
+    const userRes = await fetch(
+      `${API_URL}/api/user?telegram_id=${tgUser.id}`,
+      {
+        headers: {
+          "ngrok-skip-browser-warning": "true",
+        },
+      }
+    );
     if (!userRes.ok) throw new Error("Ошибка загрузки пользователя");
     userData.value = await userRes.json();
 
     // Загружаем сегодняшнюю тренировку
     const workoutRes = await fetch(
-      `${API_URL}/api/workouts/today?telegram_id=${tgUser.id}`
+      `${API_URL}/api/workouts/today?telegram_id=${tgUser.id}`,
+      {
+        headers: {
+          "ngrok-skip-browser-warning": "true",
+        },
+      }
     );
     if (workoutRes.ok) {
       todayWorkout.value = await workoutRes.json();
@@ -128,7 +140,12 @@ const loadUserData = async () => {
 
     // Загружаем историю веса
     const weightRes = await fetch(
-      `${API_URL}/api/progress/weight?telegram_id=${tgUser.id}`
+      `${API_URL}/api/progress/weight?telegram_id=${tgUser.id}`,
+      {
+        headers: {
+          "ngrok-skip-browser-warning": "true",
+        },
+      }
     );
     if (weightRes.ok) {
       const data = await weightRes.json();
